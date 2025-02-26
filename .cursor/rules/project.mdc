@@ -1,0 +1,65 @@
+---
+description: This is how the project is structured and what the game is about
+globs: 
+alwaysApply: false
+---
+# Civilization Grid Prototype - Project Overview
+
+## Project Structure
+This is a LÖVE-based grid-based civilization game prototype with the following key components:
+
+1. **Main Game Files**:
+   - `main.lua`: Entry point, handles game loop, input, and rendering
+   - `game.lua`: Main game state and initialization
+   - `player.lua`: Player entity, movement, and UI
+
+2. **Grid System**:
+   - `grid.lua`: Grid generation and management
+   - `tile.lua`: Tile types, properties, and yields
+
+3. **Game Mechanics**:
+   - `buildings.lua`: Building types and effects
+   - `resources.lua`: Resource types and bonuses
+   - `types.lua`: Enums and type definitions
+
+4. **UI and Rendering**:
+   - `renderer.lua`: Handles drawing of game elements
+   - `tilemenu.lua`: UI for tile interaction
+   - `camera.lua`: Camera movement and viewport calculations
+
+## Key Concepts
+
+### Grid System
+- The game world is a grid of tiles (300x300)
+- Each tile has a type (Plains, Forest, Mountain, Water)
+- Tiles can contain resources and buildings
+- Tiles provide yields (Food, Production, Gold)
+
+### Player System
+- Player has a position on the grid
+- Player can move between non-water tiles using WASD keys
+- Player has yields (Food, Production, Gold) displayed in a UI bar
+- Camera centers on player position
+
+### Buildings and Resources
+- Buildings can be placed on tiles with restrictions based on tile type
+- Resources spawn on tiles based on rarity and valid tile types
+- Both buildings and resources provide yield bonuses
+
+### UI System
+- Top bar shows player yields
+- Tile menu allows interaction with tiles
+- Tooltips show information about tiles
+
+## Code Patterns
+- Classes use the Lua metatables pattern with `Class.new()` constructors
+- Game state is centralized in the `game` global variable
+- LÖVE callbacks (`love.load`, `love.update`, `love.draw`, etc.) handle the game loop
+- Rendering is done with a camera translation system
+
+## Development Notes
+- The game automatically runs when files are saved
+- No need to run from CLI, just save the files to see changes
+- Player movement is handled with WASD keys
+- Camera movement is handled with arrow keys
+- Escape key quits the game or closes menus

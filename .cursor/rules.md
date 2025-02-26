@@ -1,0 +1,12 @@
+### Player System
+- Player has a position on the grid
+- Player can move between non-water tiles using WASD keys
+- Player has yields (Food, Production, Gold) displayed in a UI bar
+- Camera centers on player position
+- Player has a sight range (4 tiles in each direction)
+- Player maintains their own list of discovered tiles
+- Each player has their own fog of war
+- Undiscovered tiles appear as dark gray (fog of war)
+- Player can create settlements on non-water tiles
+- Settlements have a 2x2 tile border initially
+- Buildings can only be constructed within settlement borders
