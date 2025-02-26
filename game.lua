@@ -1,3 +1,5 @@
+local love = require("love")
+
 -- game.lua - Main game state and initialization
 
 Game = {}

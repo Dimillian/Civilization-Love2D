@@ -35,12 +35,6 @@ This is a LÖVE-based grid-based civilization game prototype with the following 
 - Tiles can contain resources and buildings
 - Tiles provide yields (Food, Production, Gold)
 
-### Player System
-- Player has a position on the grid
-- Player can move between non-water tiles using WASD keys
-- Player has yields (Food, Production, Gold) displayed in a UI bar
-- Camera centers on player position
-
 ### Buildings and Resources
 - Buildings can be placed on tiles with restrictions based on tile type
 - Resources spawn on tiles based on rarity and valid tile types
@@ -56,6 +50,33 @@ This is a LÖVE-based grid-based civilization game prototype with the following 
 - Game state is centralized in the `game` global variable
 - LÖVE callbacks (`love.load`, `love.update`, `love.draw`, etc.) handle the game loop
 - Rendering is done with a camera translation system
+
+### Player System
+- Player has a position on the grid
+- Player can move between non-water tiles using WASD keys
+- Player has yields (Food, Production, Gold) displayed in a UI bar
+- Camera centers on player position
+- Player has a sight range (4 tiles in each direction)
+- Player maintains their own list of discovered tiles
+- Each player has their own fog of war
+- Undiscovered tiles appear as dark gray (fog of war)
+- Player can create settlements on non-water tiles
+- Settlements have a 2x2 tile border initially
+- Buildings can only be constructed within settlement borders
+
+### Settlements System
+- Players can found settlements on non-water tiles
+- Settlements have a center position and a border radius
+- Initial settlements have a border radius of 1 (covering a 2x2 area)
+- Settlements cannot be founded within 4 tiles of an existing settlement
+- Each settlement has a unique name (currently randomly generated)
+- Settlements provide visual borders around controlled tiles
+- Only tiles within settlement borders contribute to player yields
+- Buildings can only be constructed on tiles within settlement borders
+- Each settlement displays its name, yields, and tile count
+- Settlement centers are marked with a gold circle
+- Settlement borders are displayed with white semi-transparent lines
+- The UI shows the total number of settlements and controlled tiles
 
 ## Development Notes
 - The game automatically runs when files are saved
