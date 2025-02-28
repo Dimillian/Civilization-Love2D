@@ -21,11 +21,13 @@ This is a LÖVE-based grid-based civilization game prototype with the following 
    - `buildings.lua`: Building types and effects
    - `resources.lua`: Resource types and bonuses
    - `types.lua`: Enums and type definitions
+   - `notification.lua`: Notification system for game events
 
 4. **UI and Rendering**:
    - `renderer.lua`: Handles drawing of game elements
    - `tilemenu.lua`: UI for tile interaction
    - `camera.lua`: Camera movement and viewport calculations
+   - `settlement.lua`: Settlement UI and management
 
 ## Key Concepts
 
@@ -44,12 +46,32 @@ This is a LÖVE-based grid-based civilization game prototype with the following 
 - Top bar shows player yields
 - Tile menu allows interaction with tiles
 - Tooltips show information about tiles
+- End Turn button allows manual turn advancement
+- Notification system provides feedback for game events
+
+### Notification System
+- Modular system for displaying game events to the player
+- Different notification types (Turn, Resource, Warning, Achievement) with distinct styling
+- Notifications can be positioned at top, middle, or bottom of screen
+- Dynamic sizing based on text content with minimum width
+- Fade-in and fade-out animations with configurable duration
+- Text shadow effect for improved readability
+- Notification queue with maximum limit to prevent screen clutter
+- Test mode available by pressing 'T' key
 
 ## Code Patterns
 - Classes use the Lua metatables pattern with `Class.new()` constructors
 - Game state is centralized in the `game` global variable
 - LÖVE callbacks (`love.load`, `love.update`, `love.draw`, etc.) handle the game loop
 - Rendering is done with a camera translation system
+- Enums used for type safety (NotificationType, NotificationPosition)
+
+### Turn System
+- Game progresses through turns, tracked by a turn counter
+- Player movement triggers turn advancement
+- End Turn button allows manual turn advancement
+- Turn changes trigger notifications
+- Player resources and yields update at the end of each turn
 
 ### Player System
 - Player has a position on the grid
@@ -63,6 +85,7 @@ This is a LÖVE-based grid-based civilization game prototype with the following 
 - Player can create settlements on non-water tiles
 - Settlements have a 2x2 tile border initially
 - Buildings can only be constructed within settlement borders
+- Player receives notifications for important events
 
 ### Settlements System
 - Players can found settlements on non-water tiles
@@ -77,6 +100,7 @@ This is a LÖVE-based grid-based civilization game prototype with the following 
 - Settlement centers are marked with a gold circle
 - Settlement borders are displayed with white semi-transparent lines
 - The UI shows the total number of settlements and controlled tiles
+- Founding a new settlement triggers an achievement notification
 
 ## Development Notes
 - The game automatically runs when files are saved
@@ -84,3 +108,4 @@ This is a LÖVE-based grid-based civilization game prototype with the following 
 - Player movement is handled with WASD keys
 - Camera movement is handled with arrow keys
 - Escape key quits the game or closes menus
+- Press 'T' to test the notification system with various message lengths

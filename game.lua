@@ -10,6 +10,7 @@ function Game.new()
     self.tileSize = 30
     self.gridWidth = 300
     self.gridHeight = 300
+    self.turn = 1  -- Initialize turn counter
 
     -- Initialize components
     self.grid = Grid.new(self.gridWidth, self.gridHeight, self.tileSize)
@@ -45,9 +46,48 @@ function Game:centerCameraOn(x, y)
     self.camera.x = x - screenWidth / 2
     self.camera.y = y - screenHeight / 2
 
+    -- Calculate effective grid size with zoom
+    local effectiveGridWidth = self.gridWidth * self.tileSize * self.camera.zoomLevel
+    local effectiveGridHeight = self.gridHeight * self.tileSize * self.camera.zoomLevel
+
     -- Clamp camera position to grid boundaries
-    self.camera.x = math.max(0, math.min(self.camera.x, self.gridWidth * self.tileSize - screenWidth))
-    self.camera.y = math.max(0, math.min(self.camera.y, self.gridHeight * self.tileSize - screenHeight))
+    self.camera.x = math.max(0, math.min(self.camera.x, effectiveGridWidth - screenWidth))
+    self.camera.y = math.max(0, math.min(self.camera.y, effectiveGridHeight - screenHeight))
+end
+
+-- Increment the turn counter and handle turn-based updates
+function Game:nextTurn()
+    self.turn = self.turn + 1
+
+    -- Show turn notification
+    self:showNotification(NotificationType.TURN, "Turn " .. self.turn)
+
+    -- Update player for the new turn
+    self.player:onTurnEnd()
+end
+
+-- Helper function to show different types of game notifications
+function Game:showNotification(notificationType, text, additionalOptions)
+    local options = additionalOptions or {}
+
+    -- Set default options based on notification type
+    if notificationType == NotificationType.TURN then
+        options.color = options.color or {0.7, 0.7, 1.0}  -- Light blue for turn notifications
+        options.position = options.position or NotificationPosition.TOP
+    elseif notificationType == NotificationType.RESOURCE then
+        options.color = options.color or {0.2, 0.8, 0.2}  -- Green for resource notifications
+        options.position = options.position or NotificationPosition.MIDDLE
+    elseif notificationType == NotificationType.WARNING then
+        options.color = options.color or {0.8, 0.2, 0.2}  -- Red for warnings
+        options.position = options.position or NotificationPosition.TOP
+    elseif notificationType == NotificationType.ACHIEVEMENT then
+        options.color = options.color or {1.0, 0.8, 0.2}  -- Gold for achievements
+        options.position = options.position or NotificationPosition.BOTTOM
+        options.duration = options.duration or 3.0  -- Longer duration for achievements
+    end
+
+    -- Show the notification using the global notification system
+    return notificationSystem:show(text, options)
 end
 
 return Game

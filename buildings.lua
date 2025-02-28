@@ -106,7 +106,10 @@ function Buildings:getBonuses(tile)
 end
 
 -- Render buildings on a tile
-function Buildings:render(tile, screenX, screenY, tileSize)
+function Buildings:render(tile, screenX, screenY, tileSize, opacity)
+    -- Default opacity to 1 if not provided
+    opacity = opacity or 1
+
     local indicatorSize = tileSize / 4
     local padding = tileSize / 20
 
@@ -134,65 +137,59 @@ function Buildings:render(tile, screenX, screenY, tileSize)
         -- Draw different shapes based on building type
         if buildingType == BuildingType.FARM then
             -- Farm: green triangle (field)
-            love.graphics.setColor(0.2, 0.8, 0.2, 0.9)
+            love.graphics.setColor(0.2, 0.8, 0.2, 0.9 * opacity)
             love.graphics.polygon("fill",
                 posX + indicatorSize/2, posY,
                 posX, posY + indicatorSize,
                 posX + indicatorSize, posY + indicatorSize
             )
             -- Draw outline
-            love.graphics.setColor(0, 0, 0, 0.7)
+            love.graphics.setColor(0, 0, 0, 0.7 * opacity)
             love.graphics.polygon("line",
                 posX + indicatorSize/2, posY,
                 posX, posY + indicatorSize,
                 posX + indicatorSize, posY + indicatorSize
             )
         elseif buildingType == BuildingType.MINE then
-            -- Mine: brown square with black center (mine shaft)
-            love.graphics.setColor(0.6, 0.4, 0.2, 0.9)
+            -- Mine: brown square with pickaxe
+            love.graphics.setColor(0.6, 0.4, 0.2, 0.9 * opacity)
             love.graphics.rectangle("fill", posX, posY, indicatorSize, indicatorSize)
-            love.graphics.setColor(0, 0, 0, 0.9)
-            love.graphics.rectangle("fill",
-                posX + indicatorSize/3,
-                posY + indicatorSize/3,
-                indicatorSize/3,
-                indicatorSize/3
-            )
             -- Draw outline
-            love.graphics.setColor(0, 0, 0, 0.7)
+            love.graphics.setColor(0, 0, 0, 0.7 * opacity)
             love.graphics.rectangle("line", posX, posY, indicatorSize, indicatorSize)
+            -- Draw pickaxe
+            love.graphics.setColor(0.7, 0.7, 0.7, 0.9 * opacity)
+            love.graphics.line(
+                posX + indicatorSize * 0.2, posY + indicatorSize * 0.2,
+                posX + indicatorSize * 0.8, posY + indicatorSize * 0.8
+            )
+            love.graphics.line(
+                posX + indicatorSize * 0.8, posY + indicatorSize * 0.8,
+                posX + indicatorSize * 0.6, posY + indicatorSize * 0.9
+            )
         elseif buildingType == BuildingType.MARKET then
-            -- Market: yellow circle (coin)
-            love.graphics.setColor(0.9, 0.8, 0.2, 0.9)
-            love.graphics.circle("fill",
-                posX + indicatorSize/2,
-                posY + indicatorSize/2,
-                indicatorSize/2
-            )
+            -- Market: gold circle (coin)
+            love.graphics.setColor(1, 0.8, 0.2, 0.9 * opacity)
+            love.graphics.circle("fill", posX + indicatorSize/2, posY + indicatorSize/2, indicatorSize/2)
             -- Draw outline
-            love.graphics.setColor(0, 0, 0, 0.7)
-            love.graphics.circle("line",
-                posX + indicatorSize/2,
-                posY + indicatorSize/2,
-                indicatorSize/2
-            )
+            love.graphics.setColor(0, 0, 0, 0.7 * opacity)
+            love.graphics.circle("line", posX + indicatorSize/2, posY + indicatorSize/2, indicatorSize/2)
         elseif buildingType == BuildingType.FISHERY then
-            -- Fishery: blue diamond (fish)
-            love.graphics.setColor(0.2, 0.6, 0.9, 0.9)
-            love.graphics.polygon("fill",
-                posX + indicatorSize/2, posY,
-                posX + indicatorSize, posY + indicatorSize/2,
-                posX + indicatorSize/2, posY + indicatorSize,
-                posX, posY + indicatorSize/2
-            )
+            -- Fishery: blue wave pattern
+            love.graphics.setColor(0.2, 0.6, 0.9, 0.9 * opacity)
+            -- Draw waves
+            for j = 1, 3 do
+                local y = posY + (j * indicatorSize / 4)
+                love.graphics.line(
+                    posX, y,
+                    posX + indicatorSize * 0.3, y - indicatorSize * 0.1,
+                    posX + indicatorSize * 0.7, y + indicatorSize * 0.1,
+                    posX + indicatorSize, y
+                )
+            end
             -- Draw outline
-            love.graphics.setColor(0, 0, 0, 0.7)
-            love.graphics.polygon("line",
-                posX + indicatorSize/2, posY,
-                posX + indicatorSize, posY + indicatorSize/2,
-                posX + indicatorSize/2, posY + indicatorSize,
-                posX, posY + indicatorSize/2
-            )
+            love.graphics.setColor(0, 0, 0, 0.7 * opacity)
+            love.graphics.rectangle("line", posX, posY, indicatorSize, indicatorSize)
         end
     end
 end

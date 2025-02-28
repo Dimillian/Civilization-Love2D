@@ -85,8 +85,11 @@ function Resources:getBonuses(resourceType)
 end
 
 -- Render a resource on a tile
-function Resources:render(resourceType, x, y, tileSize)
+function Resources:render(resourceType, x, y, tileSize, opacity)
     if resourceType == ResourceType.NONE then return end
+
+    -- Default opacity to 1 if not provided
+    opacity = opacity or 1
 
     -- Center of the tile
     local centerX = x + tileSize / 2
@@ -96,23 +99,23 @@ function Resources:render(resourceType, x, y, tileSize)
     -- Draw resource indicator based on type
     if resourceType == ResourceType.IRON then
         -- Iron: Gray hexagon
-        love.graphics.setColor(0.6, 0.6, 0.6, 0.9)
+        love.graphics.setColor(0.6, 0.6, 0.6, 0.9 * opacity)
         self:drawHexagon(centerX, centerY, size)
     elseif resourceType == ResourceType.GOLD_ORE then
         -- Gold: Yellow star
-        love.graphics.setColor(1, 0.9, 0.2, 0.9)
+        love.graphics.setColor(1, 0.9, 0.2, 0.9 * opacity)
         self:drawStar(centerX, centerY, size)
     elseif resourceType == ResourceType.HORSES then
         -- Horses: Brown horseshoe
-        love.graphics.setColor(0.6, 0.4, 0.2, 0.9)
+        love.graphics.setColor(0.6, 0.4, 0.2, 0.9 * opacity)
         self:drawHorseshoe(centerX, centerY, size)
     elseif resourceType == ResourceType.FISH then
         -- Fish: Blue fish shape
-        love.graphics.setColor(0.2, 0.5, 0.9, 0.9)
+        love.graphics.setColor(0.2, 0.5, 0.9, 0.9 * opacity)
         self:drawFish(centerX, centerY, size)
     elseif resourceType == ResourceType.WHEAT then
         -- Wheat: Yellow/brown wheat shape
-        love.graphics.setColor(0.9, 0.8, 0.3, 0.9)
+        love.graphics.setColor(0.9, 0.8, 0.3, 0.9 * opacity)
         self:drawWheat(centerX, centerY, size)
     end
 end

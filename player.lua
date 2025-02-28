@@ -14,6 +14,24 @@ function Player.new(grid)
     self.gridX = nil
     self.gridY = nil
 
+    -- Animation state
+    self.isMoving = false
+    self.moveStartX = nil
+    self.moveStartY = nil
+    self.moveTargetX = nil
+    self.moveTargetY = nil
+    self.moveProgress = 0
+    self.moveSpeed = 8 -- Tiles per second (increased from 5)
+
+    -- Visual position (for smooth movement)
+    self.visualX = nil
+    self.visualY = nil
+
+    -- Tile discovery animation
+    self.discoveringTiles = {} -- Table to track tiles being discovered
+    self.discoveryDuration = 0.5 -- How long the discovery animation takes (reduced from 0.8)
+    self.discoveryWaveSpeed = 10 -- How fast the discovery wave spreads (increased from 3)
+
     -- Player yields
     self.yields = {
         food = 0,
@@ -38,6 +56,10 @@ function Player.new(grid)
 
     -- Find a random valid starting position (non-water tile)
     self:findRandomStartPosition(grid)
+
+    -- Initialize visual position to match grid position
+    self.visualX = self.gridX
+    self.visualY = self.gridY
 
     -- Discover tiles around the starting position
     self:discoverTilesInRange(grid)
@@ -78,21 +100,84 @@ function Player:getCurrentTile(grid)
 end
 
 function Player:moveTo(x, y, grid)
+    -- Don't allow movement if already moving
+    if self.isMoving then
+        return false
+    end
+
     -- Check if the target position is valid
     if x >= 1 and x <= grid.width and y >= 1 and y <= grid.height then
         local tile = grid.tiles[y][x]
         -- Only allow movement to non-water tiles
         if tile.type ~= TileType.WATER then
-            self.gridX = x
-            self.gridY = y
-
-            -- Discover tiles in range after moving
-            self:discoverTilesInRange(grid)
+            -- Start animation
+            self.isMoving = true
+            self.moveStartX = self.gridX
+            self.moveStartY = self.gridY
+            self.moveTargetX = x
+            self.moveTargetY = y
+            self.moveProgress = 0
 
             return true
         end
     end
     return false
+end
+
+-- Update player animation
+function Player:update(dt, grid)
+    if self.isMoving then
+        -- Update movement progress
+        self.moveProgress = self.moveProgress + dt * self.moveSpeed
+
+        -- Update visual position
+        self.visualX = self.moveStartX + (self.moveTargetX - self.moveStartX) * math.min(1, self.moveProgress)
+        self.visualY = self.moveStartY + (self.moveTargetY - self.moveStartY) * math.min(1, self.moveProgress)
+
+        -- Smoothly follow player with camera during movement
+        local effectiveTileSize = game.camera:getEffectiveTileSize()
+        local centerX = (self.visualX - 1) * effectiveTileSize
+        local centerY = (self.visualY - 1) * effectiveTileSize
+        game:centerCameraOn(centerX, centerY)
+
+        -- Check if movement is complete
+        if self.moveProgress >= 1 then
+            -- Finalize movement
+            self.gridX = self.moveTargetX
+            self.gridY = self.moveTargetY
+            self.visualX = self.gridX
+            self.visualY = self.gridY
+            self.isMoving = false
+
+            -- Discover tiles in range after moving
+            self:discoverTilesInRange(grid)
+
+            -- Increment turn counter when movement is complete
+            game:nextTurn()
+        end
+    end
+
+    -- Update tile discovery animations
+    local i = 1
+    while i <= #self.discoveringTiles do
+        local tile = self.discoveringTiles[i]
+
+        -- Only start animating after the delay
+        if tile.delay <= 0 then
+            tile.progress = tile.progress + dt / self.discoveryDuration
+
+            -- Remove completed animations
+            if tile.progress >= 1 then
+                table.remove(self.discoveringTiles, i)
+            else
+                i = i + 1
+            end
+        else
+            -- Decrease delay
+            tile.delay = tile.delay - dt
+            i = i + 1
+        end
+    end
 end
 
 -- Discover tiles within the player's sight range
@@ -111,12 +196,36 @@ function Player:discoverTilesInRange(grid)
             -- Calculate distance from player (using Euclidean distance for a circular sight)
             local distance = math.sqrt((x - self.gridX)^2 + (y - self.gridY)^2)
 
-            -- If within sight range, mark as discovered
-            if distance <= self.sightRange then
+            -- If within sight range and not already discovered, start discovery animation
+            if distance <= self.sightRange and not self.discoveredTiles[y][x] then
+                -- Calculate delay based on distance from player
+                local delay = distance / self.discoveryWaveSpeed
+
+                -- Add to discovering tiles list
+                table.insert(self.discoveringTiles, {
+                    x = x,
+                    y = y,
+                    progress = 0,
+                    delay = delay,
+                    distance = distance
+                })
+
+                -- Mark as discovered immediately in the data structure
                 self.discoveredTiles[y][x] = true
             end
         end
     end
+end
+
+-- Check if a tile is being discovered (for rendering)
+function Player:getTileDiscoveryProgress(x, y)
+    for _, tile in ipairs(self.discoveringTiles) do
+        if tile.x == x and tile.y == y then
+            -- Return progress if delay is over, otherwise 0
+            return tile.delay <= 0 and tile.progress or 0
+        end
+    end
+    return -1 -- Not being discovered
 end
 
 -- Check if a tile is discovered by this player
@@ -218,19 +327,128 @@ function Player:draw()
 
     love.graphics.print("Settlements: " .. #self.settlements .. " (" .. totalTiles .. " tiles)", 450 + padding, 10)
 
+    -- Draw turn counter
+    love.graphics.setColor(0.7, 0.7, 1.0)  -- Light blue for turn counter
+    love.graphics.print("Turn: " .. game.turn, screenWidth - 180, 10)
+
+    -- Draw End Turn button
+    self:drawEndTurnButton(screenWidth - 80, 5, 70, 30)
+
     -- Reset color
     love.graphics.setColor(1, 1, 1)
 end
 
-function Player:drawOnMap(tileSize)
-    if not self.gridX or not self.gridY then return end
+-- Draw the End Turn button
+function Player:drawEndTurnButton(x, y, width, height)
+    -- Check if mouse is hovering over the button
+    local mx, my = love.mouse.getPosition()
+    local isHovering = mx >= x and mx <= x + width and my >= y and my <= y + height
 
-    local screenX = (self.gridX - 1) * tileSize
-    local screenY = (self.gridY - 1) * tileSize
+    -- Draw button background
+    if isHovering then
+        love.graphics.setColor(0.4, 0.4, 0.8, 0.9)  -- Brighter when hovering
+    else
+        love.graphics.setColor(0.3, 0.3, 0.7, 0.8)  -- Normal color
+    end
+    love.graphics.rectangle("fill", x, y, width, height)
+
+    -- Draw button border
+    love.graphics.setColor(0.5, 0.5, 1.0, 0.9)
+    love.graphics.rectangle("line", x, y, width, height)
+
+    -- Draw button text
+    love.graphics.setColor(1, 1, 1, 1)
+    local font = love.graphics.getFont()
+    local text = "End Turn"
+    local textWidth = font:getWidth(text)
+    local textHeight = font:getHeight()
+    love.graphics.print(text, x + width/2 - textWidth/2, y + height/2 - textHeight/2)
+end
+
+-- Handle mouse press for the End Turn button
+function Player:handleMousePress(x, y)
+    -- Check if the End Turn button was clicked
+    local screenWidth = love.graphics.getWidth()
+    local buttonX = screenWidth - 80
+    local buttonY = 5
+    local buttonWidth = 70
+    local buttonHeight = 30
+
+    if x >= buttonX and x <= buttonX + buttonWidth and y >= buttonY and y <= buttonY + buttonHeight then
+        -- End the current turn
+        game:nextTurn()
+        return true
+    end
+
+    return false
+end
+
+function Player:drawOnMap(tileSize)
+    if not self.visualX or not self.visualY then return end
+
+    -- Get the effective tile size based on zoom level
+    local effectiveTileSize = game.camera:getEffectiveTileSize()
+
+    -- Draw movement path indicator if moving
+    if self.isMoving then
+        -- Draw a line from start to target
+        love.graphics.setColor(1, 1, 1, 0.7) -- Brighter line
+        local startX = (self.moveStartX - 1) * effectiveTileSize + effectiveTileSize/2
+        local startY = (self.moveStartY - 1) * effectiveTileSize + effectiveTileSize/2
+        local targetX = (self.moveTargetX - 1) * effectiveTileSize + effectiveTileSize/2
+        local targetY = (self.moveTargetY - 1) * effectiveTileSize + effectiveTileSize/2
+
+        -- Draw dashed line with animation
+        local dashLength = 6
+        local gapLength = 4
+        local dx = targetX - startX
+        local dy = targetY - startY
+        local distance = math.sqrt(dx * dx + dy * dy)
+        local steps = math.floor(distance / (dashLength + gapLength))
+
+        -- Animate the dashes by shifting them based on time
+        local shift = (love.timer.getTime() * 10) % (dashLength + gapLength)
+
+        for i = -1, steps do
+            local t1 = math.max(0, (i * (dashLength + gapLength) + shift) / distance)
+            local t2 = math.min(1, ((i * (dashLength + gapLength)) + dashLength + shift) / distance)
+
+            if t1 < t2 then
+                local x1 = startX + dx * t1
+                local y1 = startY + dy * t1
+                local x2 = startX + dx * t2
+                local y2 = startY + dy * t2
+
+                love.graphics.setLineWidth(2) -- Thicker line
+                love.graphics.line(x1, y1, x2, y2)
+                love.graphics.setLineWidth(1)
+            end
+        end
+
+        -- Draw target indicator with pulsing effect
+        local pulseScale = 0.8 + 0.2 * math.sin(love.timer.getTime() * 6)
+        love.graphics.circle("line", targetX, targetY, tileSize/4 * pulseScale)
+
+        -- Draw a small arrow at the end
+        local arrowSize = tileSize/6
+        local angle = math.atan2(dy, dx)
+        local arrowX1 = targetX - arrowSize * math.cos(angle - math.pi/6)
+        local arrowY1 = targetY - arrowSize * math.sin(angle - math.pi/6)
+        local arrowX2 = targetX - arrowSize * math.cos(angle + math.pi/6)
+        local arrowY2 = targetY - arrowSize * math.sin(angle + math.pi/6)
+
+        love.graphics.setLineWidth(2)
+        love.graphics.line(targetX, targetY, arrowX1, arrowY1)
+        love.graphics.line(targetX, targetY, arrowX2, arrowY2)
+        love.graphics.setLineWidth(1)
+    end
+
+    local screenX = (self.visualX - 1) * effectiveTileSize
+    local screenY = (self.visualY - 1) * effectiveTileSize
 
     -- Draw player avatar (a simple circle for now)
     love.graphics.setColor(1, 0, 0)  -- Red color for player
-    love.graphics.circle("fill", screenX + tileSize/2, screenY + tileSize/2, tileSize/3)
+    love.graphics.circle("fill", screenX + effectiveTileSize/2, screenY + effectiveTileSize/2, effectiveTileSize/3)
     love.graphics.setColor(1, 1, 1)  -- Reset color
 end
 
@@ -253,6 +471,9 @@ function Player:createSettlement(x, y)
     local settlement = Settlement.new(x, y, self)
     table.insert(self.settlements, settlement)
 
+    -- Show a notification for the new settlement
+    game:showNotification(NotificationType.ACHIEVEMENT, "New settlement founded: " .. settlement.name)
+
     return true
 end
 
@@ -264,6 +485,19 @@ function Player:getSettlementAt(x, y)
         end
     end
     return nil
+end
+
+-- Handle end of turn updates for the player
+function Player:onTurnEnd()
+    -- Update player yields
+    self:updateYields(game.grid)
+
+    -- Here you can add other end-of-turn logic like:
+    -- - Resource accumulation
+    -- - Building progress
+    -- - Settlement growth
+    -- - Research progress
+    -- - Unit healing
 end
 
 -- Check if a tile is within any of the player's settlements
@@ -278,8 +512,11 @@ end
 
 -- Draw all settlements
 function Player:drawSettlements(tileSize, grid)
+    -- Get the effective tile size based on zoom level
+    local effectiveTileSize = game.camera:getEffectiveTileSize()
+
     for _, settlement in ipairs(self.settlements) do
-        settlement:draw(tileSize, grid)
+        settlement:draw(effectiveTileSize, grid)
     end
 end
 

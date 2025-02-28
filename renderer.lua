@@ -15,15 +15,21 @@ function Renderer.new()
 end
 
 function Renderer:drawGrid(grid, camera, tileSize, player)
+    -- Get the effective tile size based on zoom level
+    local effectiveTileSize = camera:getEffectiveTileSize()
+
     -- Single pass through the grid
     for y = 1, grid.height do
         for x = 1, grid.width do
-            local screenX = (x-1) * tileSize
-            local screenY = (y-1) * tileSize
+            local screenX = (x-1) * effectiveTileSize
+            local screenY = (y-1) * effectiveTileSize
 
             -- Only draw tiles that are visible on screen
-            if camera:isOnScreen(screenX, screenY, tileSize, tileSize) then
+            if camera:isOnScreen(screenX, screenY, effectiveTileSize, effectiveTileSize) then
                 local tile = grid.tiles[y][x]
+
+                -- Check if the tile is being discovered (animating)
+                local discoveryProgress = player:getTileDiscoveryProgress(x, y)
 
                 -- Draw the tile based on discovery status
                 if player:isTileDiscovered(x, y) then
@@ -31,28 +37,68 @@ function Renderer:drawGrid(grid, camera, tileSize, player)
                     local tileDef = TileDefinitions.types[tile.type]
 
                     -- Draw base tile
-                    love.graphics.setColor(tileDef.color)
-                    love.graphics.rectangle("fill", screenX, screenY, tileSize, tileSize)
-                    love.graphics.setColor(0, 0, 0, 0.3)
-                    love.graphics.rectangle("line", screenX, screenY, tileSize, tileSize)
+                    if discoveryProgress >= 0 and discoveryProgress < 1 then
+                        -- Tile is being discovered - animate the reveal
+                        -- Draw fog of war underneath
+                        love.graphics.setColor(0.1, 0.1, 0.1)
+                        love.graphics.rectangle("fill", screenX, screenY, effectiveTileSize, effectiveTileSize)
 
-                    -- Draw resource indicator if present
-                    if tile.resource ~= ResourceType.NONE then
-                        local resources = Resources.new()
-                        resources:render(tile.resource, screenX, screenY, tileSize)
+                        -- Draw tile with increasing opacity
+                        love.graphics.setColor(
+                            tileDef.color[1],
+                            tileDef.color[2],
+                            tileDef.color[3],
+                            math.min(1, discoveryProgress * 1.5) -- Faster fade-in
+                        )
+                        love.graphics.rectangle("fill", screenX, screenY, effectiveTileSize, effectiveTileSize)
+
+                        -- Draw border with increasing opacity
+                        love.graphics.setColor(0, 0, 0, 0.3 * math.min(1, discoveryProgress * 1.5))
+                        love.graphics.rectangle("line", screenX, screenY, effectiveTileSize, effectiveTileSize)
+
+                        -- Draw a reveal effect (expanding circle)
+                        love.graphics.setColor(1, 1, 1, 0.7 * (1 - discoveryProgress))
+                        local radius = effectiveTileSize * 0.6 * discoveryProgress -- Larger circle
+                        love.graphics.circle("line", screenX + effectiveTileSize/2, screenY + effectiveTileSize/2, radius)
+                    else
+                        -- Fully discovered tile
+                        love.graphics.setColor(tileDef.color)
+                        love.graphics.rectangle("fill", screenX, screenY, effectiveTileSize, effectiveTileSize)
+                        love.graphics.setColor(0, 0, 0, 0.3)
+                        love.graphics.rectangle("line", screenX, screenY, effectiveTileSize, effectiveTileSize)
                     end
 
-                    -- Draw building indicators
-                    if #tile.buildings > 0 then
-                        local buildings = Buildings.new()
-                        buildings:render(tile, screenX, screenY, tileSize)
+                    -- Only draw resources and buildings if fully visible or nearly visible
+                    -- Show resources and buildings earlier in the animation
+                    if discoveryProgress < 0 or discoveryProgress > 0.5 then
+                        -- Draw resource indicator if present
+                        if tile.resource ~= ResourceType.NONE then
+                            local resources = Resources.new()
+                            -- If still animating, draw with partial opacity
+                            local opacity = 1
+                            if discoveryProgress >= 0 then
+                                opacity = math.min(1, (discoveryProgress - 0.5) * 2) -- Faster fade-in
+                            end
+                            resources:render(tile.resource, screenX, screenY, effectiveTileSize, opacity)
+                        end
+
+                        -- Draw building indicators
+                        if #tile.buildings > 0 then
+                            local buildings = Buildings.new()
+                            -- If still animating, draw with partial opacity
+                            local opacity = 1
+                            if discoveryProgress >= 0 then
+                                opacity = math.min(1, (discoveryProgress - 0.5) * 2) -- Faster fade-in
+                            end
+                            buildings:render(tile, screenX, screenY, effectiveTileSize, opacity)
+                        end
                     end
                 else
                     -- Draw undiscovered tile (fog of war)
                     love.graphics.setColor(0.1, 0.1, 0.1)  -- Dark gray for undiscovered
-                    love.graphics.rectangle("fill", screenX, screenY, tileSize, tileSize)
+                    love.graphics.rectangle("fill", screenX, screenY, effectiveTileSize, effectiveTileSize)
                     love.graphics.setColor(0, 0, 0, 0.5)
-                    love.graphics.rectangle("line", screenX, screenY, tileSize, tileSize)
+                    love.graphics.rectangle("line", screenX, screenY, effectiveTileSize, effectiveTileSize)
                 end
             end
         end
@@ -91,8 +137,15 @@ function Renderer:drawTooltip(tile, x, y, player, gridX, gridY)
     local inSettlement, settlement = player:isTileInSettlement(gridX, gridY)
     local tooltipHeight = inSettlement and 160 or 140
 
+    -- Draw tooltip background
     love.graphics.setColor(0, 0, 0, 0.8)
     love.graphics.rectangle("fill", x + 10, y + 10, 180, tooltipHeight)
+
+    -- Draw tooltip border
+    love.graphics.setColor(0.7, 0.7, 0.7, 0.9) -- Light gray border
+    love.graphics.rectangle("line", x + 10, y + 10, 180, tooltipHeight)
+
+    -- Reset color for tooltip text
     love.graphics.setColor(1, 1, 1)
 
     local buildingNames = ""

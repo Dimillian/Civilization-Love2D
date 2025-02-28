@@ -10,6 +10,7 @@ require("buildings")
 require("resources")
 require("player")
 require("settlement")
+require("notification")
 local love = require("love")
 
 -- LÖVE callbacks
@@ -21,14 +22,26 @@ function love.load()
         minheight = 300      -- Minimum window height
     })
 
+    -- Initialize notification system
+    notificationSystem = Notification.new()
+
     game = Game.new()
+
+    -- Show a welcome notification
+    game:showNotification(NotificationType.ACHIEVEMENT, "Welcome to Civilization Grid Prototype!")
+
+    -- Test notifications with different text lengths (for debugging)
+    -- testNotifications()
 end
 
 function love.update(dt)
     game.camera:update(dt)
 
-    -- Update player yields
-    game.player:updateYields(game.grid)
+    -- Update player animation
+    game.player:update(dt, game.grid)
+
+    -- Update notifications
+    notificationSystem:update(dt)
 end
 
 function love.draw()
@@ -64,10 +77,18 @@ function love.draw()
 
     -- Draw player UI (should be drawn last to appear on top)
     game.player:draw()
+
+    -- Draw notifications
+    notificationSystem:draw()
 end
 
 function love.mousepressed(x, y, button)
     if button == 1 then -- Left mouse button
+        -- Check if the click was handled by the player UI (End Turn button)
+        if game.player:handleMousePress(x, y) then
+            return
+        end
+
         -- Check if the click was handled by the tile menu
         if game.ui.tileMenu:handleMousePress(x, y) then
             return
@@ -93,6 +114,9 @@ function love.keypressed(key)
 
         -- Otherwise, quit the game
         love.event.quit()
+    elseif key == "t" then
+        -- Test notifications when pressing T
+        testNotifications()
     end
 
     -- Player movement with WASD keys
@@ -108,16 +132,30 @@ function love.keypressed(key)
         playerMoved = game.player:moveTo(game.player.gridX + 1, game.player.gridY, game.grid)
     end
 
-    -- Center camera on player if they moved
-    if playerMoved then
-        local centerX = (game.player.gridX - 1) * game.tileSize
-        local centerY = (game.player.gridY - 1) * game.tileSize
-        game:centerCameraOn(centerX, centerY)
-    end
+    -- Camera centering is now handled in the player's update function
 end
 
 -- Add window resize callback
 function love.resize(w, h)
     -- You can add any additional resize logic here if needed
     -- For example, adjusting UI elements or camera bounds
+end
+
+-- Add mouse wheel callback for zooming
+function love.wheelmoved(x, y)
+    if y ~= 0 then
+        game.camera:zoom(y)
+    end
+end
+
+-- Function to test notifications with different text lengths
+function testNotifications()
+    -- Short text
+    game:showNotification(NotificationType.TURN, "Turn 1")
+
+    -- Medium text
+    game:showNotification(NotificationType.RESOURCE, "Found gold near your settlement!")
+
+    -- Long text
+    game:showNotification(NotificationType.WARNING, "Enemy units approaching from the north! Prepare your defenses immediately.")
 end

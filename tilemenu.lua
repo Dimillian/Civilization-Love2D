@@ -24,6 +24,8 @@ function TileMenu.new()
     self.currentLevel = MenuLevel.MAIN
     self.buildOptions = {}
     self.selectedTile = nil
+    self.selectedGridX = nil
+    self.selectedGridY = nil
     return self
 end
 
@@ -123,6 +125,24 @@ function TileMenu:showForTile(tile, x, y)
 
     -- Get the grid coordinates of the selected tile
     local gridX, gridY = game.camera:worldToGrid(x + game.camera.x, y + game.camera.y, game.tileSize)
+
+    -- Store the grid coordinates for later use
+    self.selectedGridX = gridX
+    self.selectedGridY = gridY
+
+    -- Add "Move to" option for non-water tiles
+    if tile.type ~= TileType.WATER then
+        table.insert(self.options, {
+            text = "Move to",
+            action = function()
+                if game.player:moveTo(gridX, gridY, game.grid) then
+                    -- Only center camera when movement is complete
+                    -- This will be handled in the player's update function
+                    self.visible = false
+                end
+            end
+        })
+    end
 
     -- Check if the tile is within a settlement
     local inSettlement, settlement = game.player:isTileInSettlement(gridX, gridY)

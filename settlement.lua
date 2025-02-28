@@ -100,7 +100,7 @@ function Settlement:draw(tileSize, grid)
         love.graphics.rectangle("line", screenX, screenY, tileSize, tileSize)
 
         -- Draw corner markers to make the border more visible
-        local markerSize = 5
+        local markerSize = math.max(3, tileSize / 6)  -- Scale marker size with tile size
         love.graphics.setColor(1, 1, 1, 0.8)  -- Brighter white for corners
 
         -- Top-left corner
@@ -122,18 +122,19 @@ function Settlement:draw(tileSize, grid)
 
     -- Draw settlement name
     love.graphics.setColor(1, 1, 1, 0.9)
-    love.graphics.print(self.name, centerScreenX, centerScreenY - 15)
+    local fontSize = math.max(10, tileSize / 3)  -- Scale font size with tile size
+    love.graphics.print(self.name, centerScreenX, centerScreenY - fontSize/2, 0, fontSize/12, fontSize/12)
 
     -- Calculate and display settlement yields if grid is provided
     if grid then
         local yields = self:calculateYields(grid)
         local yieldText = string.format("F:%d P:%d G:%d", yields.food, yields.production, yields.gold)
         love.graphics.setColor(1, 1, 1, 0.9)
-        love.graphics.print(yieldText, centerScreenX, centerScreenY - 30)
+        love.graphics.print(yieldText, centerScreenX, centerScreenY - fontSize, 0, fontSize/12, fontSize/12)
 
         -- Display tile count
         local tileCountText = string.format("Tiles: %d", #self.tiles)
-        love.graphics.print(tileCountText, centerScreenX, centerScreenY - 45)
+        love.graphics.print(tileCountText, centerScreenX, centerScreenY - fontSize*1.5, 0, fontSize/12, fontSize/12)
     end
 
     -- Reset color and line width
