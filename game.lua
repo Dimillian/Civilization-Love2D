@@ -22,6 +22,9 @@ function Game.new()
     -- Initialize player
     self.player = Player.new(self.grid)
 
+    -- Initialize minimap
+    self.minimap = Minimap.new(self.grid, self.tileSize)
+
     -- Set camera to player position
     if self.player.gridX and self.player.gridY then
         local centerX = (self.player.gridX - 1) * self.tileSize

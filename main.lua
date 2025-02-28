@@ -11,6 +11,7 @@ require("resources")
 require("player")
 require("settlement")
 require("notification")
+require("minimap")
 local love = require("love")
 
 -- LÖVE callbacks
@@ -78,12 +79,20 @@ function love.draw()
     -- Draw player UI (should be drawn last to appear on top)
     game.player:draw()
 
+    -- Draw minimap
+    game.minimap:draw(game.player, game.camera)
+
     -- Draw notifications
     notificationSystem:draw()
 end
 
 function love.mousepressed(x, y, button)
     if button == 1 then -- Left mouse button
+        -- Check if the click was handled by the minimap
+        if game.minimap:handleMousePress(x, y, game) then
+            return
+        end
+
         -- Check if the click was handled by the player UI (End Turn button)
         if game.player:handleMousePress(x, y) then
             return
@@ -117,6 +126,16 @@ function love.keypressed(key)
     elseif key == "t" then
         -- Test notifications when pressing T
         testNotifications()
+    elseif key == "m" then
+        -- Toggle minimap visibility when pressing M
+        game.minimap.visible = not game.minimap.visible
+
+        -- Show notification about minimap toggle
+        if game.minimap.visible then
+            game:showNotification(NotificationType.RESOURCE, "Minimap enabled")
+        else
+            game:showNotification(NotificationType.RESOURCE, "Minimap disabled")
+        end
     end
 
     -- Player movement with WASD keys
