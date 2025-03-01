@@ -95,12 +95,24 @@ This is a LÖVE-based grid-based civilization game prototype with the following 
 - Each settlement has a unique name (currently randomly generated)
 - Settlements provide visual borders around controlled tiles
 - Only tiles within settlement borders contribute to player yields
-- Buildings can only be constructed on tiles within settlement borders
+- Buildings can only be constructed on tiles within settlement bordersx
 - Each settlement displays its name, yields, and tile count
 - Settlement centers are marked with a gold circle
 - Settlement borders are displayed with white semi-transparent lines
 - The UI shows the total number of settlements and controlled tiles
 - Founding a new settlement triggers an achievement notification
+
+### Minimap System
+- Located in the bottom-left corner of the screen
+- Shows a scaled-down view of the discovered world
+- Uses the same color scheme as the main map for consistency
+- Displays player position with a red marker
+- Shows settlements with gold markers
+- Indicates current viewport with a white rectangle
+- Allows clicking to navigate to different areas of the map
+- Only shows tiles that have been discovered by the player
+- Can be toggled on/off by pressing the 'M' key
+- Provides navigation notifications when clicking on the minimap
 
 ## Development Notes
 - The game automatically runs when files are saved
